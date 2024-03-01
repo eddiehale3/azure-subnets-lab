@@ -2,9 +2,22 @@
 
 ## Overview
 
-Brief overview of the why, including what we are building and architecture diagram of the whole project.
+Azure Virtual Networks (VNets) offer a way to logically isolate resources within Azure. Within a VNet, you can segment your resources into subnets, providing further control and security. Setting up a VNet with both a private and a public subnet is a common practice:
+
+- **Private subnet:** This subnet is not directly accessible from the internet. It's ideal for resources that need to communicate with each other within the VNet but don't require public exposure. This enhances security for sensitive data and applications.
+
+- **Public subnet:** This subnet has a public IP address space, allowing resources deployed within it to be accessed directly from the internet. This is suitable for resources like web servers or APIs that need to be publicly available.
+
+By utilizing both private and public subnets within a VNet, you can achieve a balance between security and accessibility for your Azure resources.
+
+To illustrate network connectivity concepts, this lab will walk you through creating a VNet with public and private subnets, and deploying VMs. You'll then explore how resources in these subnets can communicate (or not) with each other.
 
 ![Two VMs](images/2-VMs.png)
+
+### Prerequisites
+
+1. Azure account
+2. [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) installed
 
 ## Manually Create Resources
 
@@ -143,7 +156,14 @@ Provide Bicep (and Terraform?) templates
 
 ## Summary
 
-Cover the why subnets are useful and what we’ve accomplished
+This lab delved into the fundamental concepts of network connectivity within Azure Virtual Networks (VNets). You successfully created a VNet with both public and private subnets, providing a hands-on environment to explore how resources in each subnet interact.
 
-TODO: Create diagram with 2 vms, create another with public VM and private database
-TODO: Make note on horizontal scalability of Database being separate from VM (read DB instance and write DB instance)
+Through this lab, you gained practical experience in:
+
+- **Creating a VNet and Subnets:** You learned how to define an Azure VNet and configure it with separate public and private subnets, understanding the purpose of each subnet in network isolation.
+  
+- **Deploying Virtual Machines:** You deployed virtual machines (VMs) into both public and private subnets, establishing the foundation for exploring network connectivity.
+  
+- **Testing Network Connectivity:** You tested communication between VMs in different subnets and with the internet, gaining insights into the default firewall rules and the importance of Network Security Groups (NSGs) for granular control.
+
+By completing this lab, you have gained a solid foundation in understanding how network connectivity works within Azure VNets and the role of subnets in segregating resources for enhanced security and control.
