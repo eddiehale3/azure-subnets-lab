@@ -12,7 +12,7 @@ By utilizing both private and public subnets within a VNet, you can achieve a ba
 
 To illustrate network connectivity concepts, this lab will walk you through creating a VNet with public and private subnets, and deploying VMs. You'll then explore how resources in these subnets can communicate (or not) with each other.
 
-![Two VMs](images/2-VMs.png)
+![Two VMs](images/diagrams/2-VMs.png)
 
 ## Prerequisites
 
