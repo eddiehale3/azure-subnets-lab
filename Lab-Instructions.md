@@ -138,7 +138,23 @@ To illustrate network connectivity concepts, this lab will walk you through crea
 
 ## Use Bicep to Deploy Resources
 
-WIP
+Be sure your `az` command line tool is authenticated. If you have already done this in the past, skip this step.
+
+```bash
+az login
+```
+
+Once authentication is verified, create a Resource Group for your resources. Replace the name, location, and subscription to your values. If you have spaces in your subscription name it can be surrounded with quotes. An example is below. Remember the Resource Group name to use in later steps.
+
+```bash
+az group create --name azure-subnets-lab --location eastus --subscription "Azure subscription 1"
+```
+
+Now that we have our resource group we can deploy all of our other resources.
+
+```bash
+az deployment group create --resource-group azure-subnets-lab --template-file main.bicep
+```
 
 ## Test Virtual Machine connectivity
 

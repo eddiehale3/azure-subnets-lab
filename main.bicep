@@ -3,23 +3,23 @@ param resourceGroupLocation string = resourceGroup().location
 
 // Networking Params
 @description('Name of your Virtual Network (VNet)')
-param vnetName string = ''
+param vnetName string = 'subnets-lab'
 
 @description('Name of the public subnet')
-param publicSubnetName string = ''
+param publicSubnetName string = 'public-subnet'
 
 @description('Name of the private subnet')
-param privateSubnetName string = ''
+param privateSubnetName string = 'private-subnet'
 
 @description('Name of the private subnet network security group')
-param privateSGName string = ''
+param privateSGName string = 'private-sg'
 
 // Virtual Machine Params
 @description('Name of the Virtual Machine deployed to your public subnet')
-param publicVMName string = ''
+param publicVMName string = 'public-vm'
 
 @description('Name of the Virtual Machine deployed to your private subnet')
-param privateVMName string = ''
+param privateVMName string = 'private-vm'
 
 @description('Username for the Virtual Machines')
 param adminUser string = 'azureuser'
