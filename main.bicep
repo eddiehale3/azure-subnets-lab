@@ -59,7 +59,7 @@ var imageReference = {
     version: 'latest'
   }
 }
-var publicIPAddressName = '${publicVMName}PublicIP'
+// var publicIPAddressName = '${publicVMName}PublicIP'
 var networkInterfaceName = '${publicVMName}NetInt'
 var osDiskType = 'Standard_LRS'
 var publicSubnetAddressPrefix = '10.0.0.0/27'
