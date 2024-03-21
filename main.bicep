@@ -8,6 +8,9 @@ param vnetName string = 'subnets-lab'
 @description('Name of the public subnet')
 param publicSubnetName string = 'public-subnet'
 
+@description('Name of the public subnet network security group')
+param publicSGName string = 'public-sg'
+
 @description('Name of the private subnet')
 param privateSubnetName string = 'private-subnet'
 
@@ -26,7 +29,10 @@ param adminUser string = 'azureuser'
 
 @description('SSH Key for the Virtual Machine.')
 @secure()
-param adminPasswordOrKey string
+param adminPasswordOrKeyPath string
+
+@description('Unique DNS Name for the Public IP used to access the Virtual Machine.')
+param dnsLabelPrefix string = toLower('${publicVMName}-${uniqueString(resourceGroup().id)}')
 
 @description('The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version.')
 @allowed([
@@ -59,19 +65,20 @@ var imageReference = {
     version: 'latest'
   }
 }
-// var publicIPAddressName = '${publicVMName}PublicIP'
-var networkInterfaceName = '${publicVMName}NetInt'
+var publicIPAddressName = '${publicVMName}PublicIP'
+var publicNetworkInterfaceName = '${publicVMName}NetInt'
+var privateNetworkInterfaceName = '${privateVMName}NetInt'
 var osDiskType = 'Standard_LRS'
 var publicSubnetAddressPrefix = '10.0.0.0/27'
-var privateSubnetAddressPrefix = '10.0.1.0/27'
-var vnetAddressPrefix = [ '10.0.0.0/26' ]
+var privateSubnetAddressPrefix = '10.0.0.32/27'
+var vnetAddressPrefix = ['10.0.0.0/26']
 var linuxConfiguration = {
   disablePasswordAuthentication: true
   ssh: {
     publicKeys: [
       {
         path: '/home/${adminUser}/.ssh/authorized_keys'
-        keyData: adminPasswordOrKey
+        keyData: adminPasswordOrKeyPath
       }
     ]
   }
@@ -98,17 +105,42 @@ resource publicSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-09-01' = {
   }
 }
 
+resource publicSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
+  name: publicSGName
+  location: resourceGroupLocation
+  properties: {
+    securityRules: [
+      {
+        name: 'SSH'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '22'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+          access: 'Allow'
+          priority: 1010
+          direction: 'Inbound'
+        }
+      }
+    ]
+  }
+}
+
 resource privateSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-09-01' = {
   parent: virtualNetwork
   name: privateSubnetName
   properties: {
     addressPrefix: privateSubnetAddressPrefix
-    networkSecurityGroup: privateSecurityGroup
+    networkSecurityGroup: {
+      id: privateSecurityGroup.id
+    }
   }
 }
 
 resource privateSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
   name: privateSGName
+  location: resourceGroupLocation
   properties: {
     securityRules: [
       {
@@ -124,21 +156,23 @@ resource privateSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-04-0
           direction: 'Inbound'
         }
       }
-      // Leave commented until later in the lab
-      // {
-      //   name: 'AllowPublicVMInbound'
-      //   properties: {
-      //     protocol: '*'
-      //     sourcePortRange: '*'
-      //     destinationPortRange: '*'
-      //     sourceAddressPrefix: 'REPLACE_ME/32'
-      //     destinationAddressPrefix: '*'
-      //     access: 'Allow'
-      //     priority: 999
-      //     direction: 'Inbound'
-      //   }
-      // }
     ]
+  }
+}
+
+resource publicIP 'Microsoft.Network/publicIPAddresses@2020-06-01' = {
+  name: publicIPAddressName
+  location: resourceGroupLocation
+  properties: {
+    publicIPAllocationMethod: 'Dynamic'
+    publicIPAddressVersion: 'IPv4'
+    dnsSettings: {
+      domainNameLabel: dnsLabelPrefix
+    }
+    idleTimeoutInMinutes: 4
+  }
+  sku: {
+    name: 'Basic'
   }
 }
 
@@ -146,7 +180,7 @@ resource privateSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-04-0
   Virtual Machine Resources
 */
 resource publicNetworkInterface 'Microsoft.Network/networkInterfaces@2023-09-01' = {
-  name: networkInterfaceName
+  name: publicNetworkInterfaceName
   location: resourceGroupLocation
   properties: {
     ipConfigurations: [
@@ -155,6 +189,10 @@ resource publicNetworkInterface 'Microsoft.Network/networkInterfaces@2023-09-01'
         properties: {
           subnet: {
             id: publicSubnet.id
+          }
+          privateIPAllocationMethod: 'Dynamic'
+          publicIPAddress: {
+            id: publicIP.id
           }
         }
       }
@@ -172,7 +210,7 @@ resource publicUbuntuVM 'Microsoft.Compute/virtualMachines@2020-12-01' = {
     osProfile: {
       computerName: publicVMName
       adminUsername: adminUser
-      adminPassword: adminPasswordOrKey
+      adminPassword: adminPasswordOrKeyPath
       linuxConfiguration: linuxConfiguration
     }
     storageProfile: {
@@ -187,16 +225,32 @@ resource publicUbuntuVM 'Microsoft.Compute/virtualMachines@2020-12-01' = {
     networkProfile: {
       networkInterfaces: [
         {
-          id: 'id'
+          id: publicNetworkInterface.id
         }
       ]
     }
     diagnosticsProfile: {
       bootDiagnostics: {
         enabled: true
-        storageUri: 'storageUri'
       }
     }
+  }
+}
+
+resource privateNetworkInterface 'Microsoft.Network/networkInterfaces@2023-09-01' = {
+  name: privateNetworkInterfaceName
+  location: resourceGroupLocation
+  properties: {
+    ipConfigurations: [
+      {
+        name: 'ipconfig1'
+        properties: {
+          subnet: {
+            id: privateSubnet.id
+          }
+        }
+      }
+    ]
   }
 }
 
@@ -205,37 +259,33 @@ resource privateUbuntuVM 'Microsoft.Compute/virtualMachines@2020-12-01' = {
   location: resourceGroupLocation
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_B1s'
+      vmSize: vmSize
     }
     osProfile: {
-      // computerName: 'computerName'
+      computerName: privateVMName
       adminUsername: adminUser
-      adminPassword: 'adminPassword'
+      adminPassword: adminPasswordOrKeyPath
+      linuxConfiguration: linuxConfiguration
     }
     storageProfile: {
-      imageReference: {
-        publisher: 'Canonical'
-        offer: 'UbuntuServer'
-        sku: '20.04-LTS'
-        version: 'latest'
-      }
+      imageReference: imageReference[ubuntuOSVersion]
       osDisk: {
-        name: 'name'
-        caching: 'ReadWrite'
         createOption: 'FromImage'
+        managedDisk: {
+          storageAccountType: osDiskType
+        }
       }
     }
     networkProfile: {
       networkInterfaces: [
         {
-          id: 'id'
+          id: privateNetworkInterface.id
         }
       ]
     }
     diagnosticsProfile: {
       bootDiagnostics: {
         enabled: true
-        storageUri: 'storageUri'
       }
     }
   }
@@ -245,4 +295,5 @@ resource privateUbuntuVM 'Microsoft.Compute/virtualMachines@2020-12-01' = {
   Outputs
 */
 output adminUsername string = adminUser
-// output publicIP string = 
+output hostname string = publicIP.properties.dnsSettings.fqdn
+output sshCommand string = 'ssh -i .ssh/id_rsa ${adminUser}@${publicIP.properties.dnsSettings.fqdn}'

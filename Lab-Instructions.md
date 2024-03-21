@@ -144,17 +144,35 @@ Be sure your `az` command line tool is authenticated. If you have already done t
 az login
 ```
 
-Once authentication is verified, create a Resource Group for your resources. Replace the name, location, and subscription to your values. If you have spaces in your subscription name it can be surrounded with quotes. An example is below. Remember the Resource Group name to use in later steps.
+To use Bicep for deploying these resources you will need an SSH keypair using RSA encryption. If you do not have one handy they are fairly easy to create. To make sure we do not interfere with other SSH keys you may have on your machine we'll make a temporary one in this folder.
+
+From the project root run the following:
+
+```bash
+pwd
+```
+
+`pwd` outputs the current directory path. This will be used in the next few steps. Use the following command to create a test/temporary SSH key pair - be careful not to overwrite the keys in your `~/.ssh` directory. These should be created under your project directory `azure-subnets-lab`!!!
+
+```bash
+ssh-keygen -m PEM -t rsa -b 4096
+```
+
+When prompted to enter a file for saving the key, use `output-from-pwd/.ssh/id_rsa` replacing output-from-pwd with the directory output from above. Ignore the prompts for entering a password by hitting enter twice.
+
+Once authentication is verified and keys created, create a Resource Group for your resources. Replace the name, location, and subscription to your values. If you have spaces in your subscription name it can be surrounded with quotes. An example is below. Remember the Resource Group name to use in later steps.
 
 ```bash
 az group create --name azure-subnets-lab --location eastus --subscription "Azure subscription 1"
 ```
 
-Now that we have our resource group we can deploy all of our other resources.
+Now that we have our resource group we can copy the contents of our public key then deploy our resources. Be sure to update the command with your subscription and resource group, if necessary.
 
 ```bash
-az deployment group create --resource-group azure-subnets-lab --template-file main.bicep
+cat .ssh/id_rsa.pub | pbcopy && az stack group create --subscription "Azure subscription 1" -g azure-subnets-lab -n subnets-lab-stack -f main.bicep -p adminPasswordOrKeyPath="$(pbpaste)" --dm None
 ```
+
+If everything was entered correctly you should receive a large JSON object for a response, and resources created in your Resource group.
 
 ## Test Virtual Machine connectivity
 
@@ -251,7 +269,11 @@ We've done a lot in this section. To summarize, we SSH'd into our public virtual
 
 ### Bicep
 
-Steps to tear down Resource Manager stack
+- Delete Resource Group
+
+```bash
+az group delete -n azure-subnets-lab --subscription "Azure subscription 1" --yes
+```
 
 ### Manual
 
